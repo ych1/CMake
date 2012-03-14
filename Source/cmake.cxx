@@ -100,6 +100,10 @@
 # include "cmExtraEclipseCDT4Generator.h"
 #endif
 
+#ifdef CMAKE_USE_CODELITE
+#include "cmGlobalCodeLiteGenerator.h"
+#endif
+
 #include <stdlib.h> // required for atoi
 
 #if defined( __APPLE__ )
@@ -1858,6 +1862,7 @@ void cmake::AddDefaultExtraGenerators()
                                              = &cmGlobalKdevelopGenerator::New;
 #endif
 
+
 #endif
 }
 
@@ -2600,6 +2605,10 @@ void cmake::AddDefaultGenerators()
 #ifdef CMAKE_USE_XCODE
   this->Generators[cmGlobalXCodeGenerator::GetActualName()] =
     &cmGlobalXCodeGenerator::New;
+#endif
+#ifdef CMAKE_USE_CODELITE
+  this->Generators[cmClobalCodeLiteGenerator::GetActualName()] =
+	  &cmClobalCodeLiteGenerator::New;
 #endif
 }
 

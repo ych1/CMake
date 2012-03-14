@@ -178,6 +178,10 @@ SET(SRCS
   cmExportInstallFileGenerator.cxx
   cmExtraCodeBlocksGenerator.cxx
   cmExtraCodeBlocksGenerator.h
+  cmGlobalCodeLiteGenerator.cxx
+  cmGlobalCodeLiteGenerator.h
+  cmCodeLiteTargetGenerator.cxx
+  cmCodeLiteTargetGenerator.h
   cmExtraEclipseCDT4Generator.cxx
   cmExtraEclipseCDT4Generator.h
   cmFileTimeComparison.cxx
@@ -268,6 +272,13 @@ SET(SRCS
   cm_sha2.c
   cm_utf8.h
   cm_utf8.c
+
+  tinyxml/tinystr.cpp 
+  tinyxml/tinystr.h 
+  tinyxml/tinyxml.cpp 
+  tinyxml/tinyxml.h 
+  tinyxml/tinyxmlerror.cpp 
+  tinyxml/tinyxmlparser.cpp
   )
 
 # Kdevelop only works on UNIX and not windows
@@ -520,6 +531,7 @@ OPTION(BUILD_QtDialog "Build Qt dialog for CMake" FALSE)
 IF(BUILD_QtDialog)
   SUBDIRS(QtDialog)
 ENDIF(BUILD_QtDialog)
+
 
 INCLUDE (${CMake_BINARY_DIR}/Source/LocalUserOptions.cmake OPTIONAL)
 INCLUDE (${CMake_SOURCE_DIR}/Source/LocalUserOptions.cmake OPTIONAL)

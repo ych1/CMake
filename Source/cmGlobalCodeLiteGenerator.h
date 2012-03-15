@@ -16,13 +16,20 @@
 #include "cmGlobalGenerator.h"
 #include "cmSourceGroup.h"
 #include "cmGlobalUnixMakefileGenerator3.h"
+
+#ifdef WIN32
 #include "cmGlobalMinGWMakefileGenerator.h"
+typedef cmGlobalMinGWMakefileGenerator cmClobalCodeLiteGeneratorBase;
+#else
+typedef cmGlobalUnixMakefileGenerator3 cmClobalCodeLiteGeneratorBase ;
+#endif
+
 #include "tinyxml/tinyxml.h"
 class cmLocalGenerator;
 class XMLDocument;
 class XMLNode;
 
-class cmClobalCodeLiteGenerator : public cmGlobalMinGWMakefileGenerator
+class cmClobalCodeLiteGenerator : public cmClobalCodeLiteGeneratorBase
 {
 public:
   cmClobalCodeLiteGenerator();

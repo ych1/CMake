@@ -280,7 +280,8 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteBuildCommands(std::string const & 
 			}
 			TiXmlElement* Command = new TiXmlElement( "Command" );
 			Command->SetAttribute("Enabled" ,"yes");
-			Command->SetValue(cmd);
+            TiXmlText *Content = new TiXmlText(cmd);
+            Command->LinkEndChild(Content);
 			Build->LinkEndChild(Command);
 		}
 

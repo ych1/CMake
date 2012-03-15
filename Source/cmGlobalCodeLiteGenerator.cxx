@@ -63,18 +63,18 @@ cmClobalCodeLiteGenerator::cmClobalCodeLiteGenerator()
 ///! Create a local generator appropriate to this Global Generator
 cmLocalGenerator *cmClobalCodeLiteGenerator::CreateLocalGenerator()
 {
-	cmLocalGenerator* lg = cmGlobalMinGWMakefileGenerator::CreateLocalGenerator();
+	cmLocalGenerator* lg = cmClobalCodeLiteGeneratorBase::CreateLocalGenerator();
 
 	return lg;
 }
 void cmClobalCodeLiteGenerator::EnableLanguage(std::vector<std::string>const& languages,
 	cmMakefile *mf, bool optional)
 {
-	cmGlobalMinGWMakefileGenerator::EnableLanguage(languages,mf,optional);
+	cmClobalCodeLiteGeneratorBase::EnableLanguage(languages,mf,optional);
 }
 void cmClobalCodeLiteGenerator::Generate()
 {
-	this->cmGlobalMinGWMakefileGenerator::Generate();
+	this->cmClobalCodeLiteGeneratorBase::Generate();
 
 	// Hold root tree information for creating the workspace 
 	std::string workspaceProjectName;

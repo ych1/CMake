@@ -52,6 +52,7 @@ private:
 	void AppendCustomCommand(std::vector<std::string>& commands,
 		const cmCustomCommand& cc,
 		std::string const& ConfigurationName);
+	std::string GetCompiler( );
 private:
 	cmTarget* Target;
 	cmMakefile* Makefile;

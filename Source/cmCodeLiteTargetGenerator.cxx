@@ -49,11 +49,6 @@ void cmCodeLiteTargetGenerator::Generate()
 				RootElement->LinkEndChild(node);
 				for (cmTargetDependSet::const_iterator it = depends.begin() ; it!=depends.end() ; it++)
 				{
-					//(*it)->GetName()
-					if(std::string( (*it)->GetName() ) == "ClangDiagnosticAnalysis")
-					{
-						int aa = 0;
-					}
 					TiXmlElement* Project = new TiXmlElement("Project");
 					Project->SetAttribute("Name",(*it)->GetName());
 					node->LinkEndChild(Project);
@@ -72,7 +67,7 @@ void cmCodeLiteTargetGenerator::WriteGroupSources(TiXmlElement* parent)
 	// find all virtual directories for this target
 	std::map< std::string , TiXmlElement* > groupSources;
 	std::vector<cmSourceGroup>  sourceGroups = Makefile->GetSourceGroups();
-	const std::vector<cmSourceFile*>& sources=Target->GetSourceFiles();
+	const std::vector<cmSourceFile*>& sources = Target->GetSourceFiles();
 
 	for (std::vector<cmSourceFile*>::const_iterator it = sources.begin() ; it!=sources.end() ; it++)
 	{
@@ -85,6 +80,7 @@ void cmCodeLiteTargetGenerator::WriteGroupSources(TiXmlElement* parent)
 			node = new TiXmlElement("VirtualDirectory");
 			node->SetAttribute("Name", filter.c_str() );
 			parent->LinkEndChild(node);
+
 			groupSources[filter] = node;
 		}
 		TiXmlElement* file = new TiXmlElement("File");
@@ -92,6 +88,13 @@ void cmCodeLiteTargetGenerator::WriteGroupSources(TiXmlElement* parent)
 		node->LinkEndChild(file);
 	}
 
+	TiXmlElement *dir = new TiXmlElement("VirtualDirectory");
+	parent->LinkEndChild(dir);
+	dir->SetAttribute("Name", "CMake Files");
+	TiXmlElement* file = new TiXmlElement("File");
+	dir->LinkEndChild(file);
+	file->SetAttribute("Name", Makefile->GetCurrentListFile() );
+	
 }
 TiXmlElement* cmCodeLiteTargetGenerator::WriteSettings()
 {
@@ -147,10 +150,10 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteSettings()
 TiXmlElement* cmCodeLiteTargetGenerator::WriteConfiguration(std::string const& name , std::string const& type)
 {
 	TiXmlElement* Configuration = new TiXmlElement("Configuration");
-
+	
 	std::string CompilerType = "gnu g++";
 	std::string DebuggerType = "GNU gdb debugger";
-	
+	CompilerType = GetCompiler();
 	Configuration->SetAttribute("Name",name);
 	Configuration->SetAttribute("CompilerType",CompilerType.c_str());
 	Configuration->SetAttribute("DebuggerType",DebuggerType.c_str());
@@ -602,4 +605,28 @@ void cmCodeLiteTargetGenerator::AppendCustomCommand(std::vector<std::string>& co
 
 	// push back the custom commands
 	commands.insert(commands.end(), commands1.begin(), commands1.end());
+}
+
+std::string cmCodeLiteTargetGenerator::GetCompiler( )
+{
+	std::string compilerIdVar = "CMAKE_CXX_COMPILER_ID";
+	
+	if (Makefile->GetLocalGenerator()->GetGlobalGenerator()->GetLanguageEnabled("CXX") == false)
+	{
+		compilerIdVar = "CMAKE_C_COMPILER_ID";
+	}
+
+	std::string compilerId = Makefile->GetSafeDefinition(compilerIdVar.c_str());
+	compilerId = cmSystemTools::UpperCase(compilerId);
+	std::string compiler = "gnu g++";  // default to gcc
+	if (compilerId == "GNU")
+	{
+		compiler = "gnu g++";
+	}
+	else if (compilerId == "CLANG")
+	{
+		compiler = "clang";
+	}
+	return compiler;
+
 }

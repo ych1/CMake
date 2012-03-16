@@ -109,7 +109,6 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteSettings()
 
 	setting->SetAttribute("Type", Type.c_str() );
 
-	TiXmlElement* child;
 	TiXmlElement* globalSettings = new TiXmlElement("GlobalSettings");
 	setting->LinkEndChild(globalSettings);
 
@@ -160,8 +159,9 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteConfiguration(std::string const& n
 	Configuration->SetAttribute("BuildLnkWithGlobalSettings","append" );
 	Configuration->SetAttribute("BuildResWithGlobalSettings","append" );
 
-	Configuration->LinkEndChild( WriteCompiler() );
-	Configuration->LinkEndChild( WriteLinker() );
+	Configuration->LinkEndChild( WriteCompiler( Target->GetType() !=cmTarget::UTILITY ) );
+
+	Configuration->LinkEndChild( WriteLinker( Target->GetType() !=cmTarget::UTILITY ) );
 
 	TiXmlElement* ResourceCompiler = new TiXmlElement("ResourceCompiler");
 	ResourceCompiler->SetAttribute("Options","append" );
@@ -196,7 +196,9 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteConfiguration(std::string const& n
 		const char * dir = Target->GetProperty( config1.c_str() );
 		if(!dir)
 			dir = Target->GetProperty( config.c_str() );
-		OutputDir = dir;
+
+		OutputDir = dir != NULL ? dir : "";
+
 	}
 
 	OutputFile =  OutputDir +"/"  + Target->GetFullName();
@@ -313,7 +315,7 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteCustomBuild()
 
 	return CustomBuild;
 }
-TiXmlElement* cmCodeLiteTargetGenerator::WriteCompiler()
+TiXmlElement* cmCodeLiteTargetGenerator::WriteCompiler(bool isEnable)
 {
 
 	const char* cflags = Makefile->GetProperty("COMPILE_FLAGS");
@@ -322,7 +324,7 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteCompiler()
 	
 	std::string CompilerOptions ;
 	std::string C_Options;
-	std::string Required = "yes";
+	std::string Required = isEnable ? "yes" : "no";
 	std::string PreCompiledHeader = "" ;
 	std::string PCHInCommandLine = "yes";
 	std::string UseDifferentPCHFlags = "yes";
@@ -371,7 +373,7 @@ void WriteGroups(TiXmlElement* node , std::string const& groupName , Iterator be
 }
 
 
-TiXmlElement* cmCodeLiteTargetGenerator::WriteLinker()
+TiXmlElement* cmCodeLiteTargetGenerator::WriteLinker(bool isEnable )
 {
 	const char* linkflags =  Target->GetProperty("LINK_FLAGS");
 	std::string Options;
@@ -388,7 +390,7 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteLinker()
 		}
 	TiXmlElement* Linker = new TiXmlElement("Linker");
 	Linker->SetAttribute("Options", Options );
-	Linker->SetAttribute("Required", "yes" );
+	Linker->SetAttribute("Required", isEnable ? "yes" : "no" );
 
 
 	//  LibraryPath 

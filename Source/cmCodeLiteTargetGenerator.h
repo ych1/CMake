@@ -39,8 +39,8 @@ private:
 
 	TiXmlElement* WriteSettings();
 	TiXmlElement* WriteConfiguration(std::string const& name , std::string const& type);
-	TiXmlElement* WriteCompiler();
-	TiXmlElement* WriteLinker();
+	TiXmlElement* WriteCompiler(bool isEnable = true);
+	TiXmlElement* WriteLinker(bool isEnable = true);
 	TiXmlElement* WriteCustomBuild();
 	TiXmlElement* WriteBuildCommands(std::string const & buildType, std::vector<cmCustomCommand> & commands);
 	void WriteCustomCommands(TiXmlElement* node);

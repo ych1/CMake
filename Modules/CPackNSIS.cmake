@@ -8,11 +8,6 @@
 ##end
 #
 ##variable
-#   CPACK_PACKAGE_INSTALL_REGISTRY_KEY - Registry key used when
-#   installing this project.
-##end
-#
-##variable
 #   CPACK_NSIS_INSTALL_ROOT - The default installation directory presented
 #   to the end user by the NSIS installer is under this root dir. The full
 #   directory presented to the end user is:
@@ -20,28 +15,37 @@
 ##end
 #
 ##variable
-#   CPACK_NSIS_MUI_ICON - The icon file (.ico) for the generated
+#   CPACK_NSIS_MUI_ICON - An icon filename.
+#   The name of a *.ico file used as the main icon for the generated
 #   install program.
 ##end
 #
 ##variable
-#   CPACK_NSIS_MUI_UNIICON - The icon file (.ico) for the generated
+#   CPACK_NSIS_MUI_UNIICON - An icon filename.
+#   The name of a *.ico file used as the main icon for the generated
 #   uninstall program.
 ##end
 #
 ##variable
-#   CPACK_PACKAGE_ICON - A branding image that will be displayed inside
-#   the installer.
+#   CPACK_NSIS_INSTALLER_MUI_ICON_CODE - undocumented.
 ##end
 #
 ##variable
-#   CPACK_NSIS_EXTRA_INSTALL_COMMANDS - Extra NSIS commands that will
-#   be added to the install Section.
+#   CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS - Extra NSIS commands that
+#   will be added to the beginning of the install Section, before your
+#   install tree is available on the target system.
+##end
+#
+##variable
+#   CPACK_NSIS_EXTRA_INSTALL_COMMANDS - Extra NSIS commands that
+#   will be added to the end of the install Section, after your
+#   install tree is available on the target system.
 ##end
 #
 ##variable
 #   CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS - Extra NSIS commands that will
-#   be added to the uninstall Section.
+#   be added to the uninstall Section, before your install tree is
+#   removed from the target system.
 ##end
 #
 ##variable
@@ -50,7 +54,16 @@
 ##end
 #
 ##variable
-#   CPACK_NSIS_MODIFY_PATH - If this is set to "ON", then an extra page
+#   CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL - Ask about uninstalling
+#   previous versions first.
+#   If this is set to "ON", then an installer will look for previous
+#   installed versions and if one is found, ask the user whether to
+#   uninstall it before proceeding with the install.
+##end
+#
+##variable
+#   CPACK_NSIS_MODIFY_PATH - Modify PATH toggle.
+#   If this is set to "ON", then an extra page
 #   will appear in the installer that will allow the user to choose
 #   whether the program directory should be added to the system PATH
 #   variable.
@@ -106,6 +119,15 @@
 ##variable
 #   CPACK_NSIS_MUI_FINISHPAGE_RUN - Specify an executable to add an option
 #   to run on the finish page of the NSIS installer.
+##end
+##variable
+#   CPACK_NSIS_MENU_LINKS - Specify links in [application] menu.
+#   This should contain a list of pair "link" "link name". The link
+#   may be an URL or a path relative to installation prefix.
+#   Like:
+#     set(CPACK_NSIS_MENU_LINKS
+#         "doc/cmake-@CMake_VERSION_MAJOR@.@CMake_VERSION_MINOR@/cmake.html" "CMake Help"
+#         "http://www.cmake.org" "CMake Web Site")
 ##end
 
 #=============================================================================

@@ -45,25 +45,40 @@ if (NOT QT4_FOUND)
     endforeach(FIND_MODULE)
 endif (NOT QT4_FOUND)
 
-# If any of these modules reported that it was found a version number should have been
-# reported.
-set(VERSIONS_REQUIRED
-    ALSA BISON BZIP2 CUPS CURL DOXYGEN EXPAT FLEX FREETYPE GETTEXT GIF GIT
-    ImageMagick JASPER LibArchive LIBXML2 LIBXSLT PERL PKG_CONFIG PostgreSQL
-    SWIG TIFF ZLIB)
-
-foreach(VTEST ${VERSIONS_REQUIRED})
-    if (${VTEST}_FOUND)
-        if (DEFINED ${VTEST}_VERSION_STRING)
-            if (NOT ${VTEST}_VERSION_STRING MATCHES "^[0-9][0-9\\.]*[A-Za-z_]*[0-9\\.]*$")
-                message(SEND_ERROR "${VTEST}_VERSION_STRING has unexpected content ${${VTEST}_VERSION_STRING}")
+macro(check_version_string MODULE_NAME VERSION_VAR)
+    if (${MODULE_NAME}_FOUND)
+        if (DEFINED ${VERSION_VAR})
+            message(STATUS "${VERSION_VAR}='${${VERSION_VAR}}'")
+            if (NOT ${VERSION_VAR} MATCHES "^[0-9]")
+                message(SEND_ERROR "unexpected: ${VERSION_VAR} does not begin with a decimal digit")
             endif()
-        elseif (DEFINED ${VTEST}_VERSION)
-            if (NOT ${VTEST}_VERSION MATCHES "^[0-9][0-9\\.]*[A-Za-z_]*[0-9\\.]*$")
-                message(SEND_ERROR "${VTEST}_VERSION has unexpected content ${${VTEST}_VERSION}")
+            if ("${${VERSION_VAR}}" STREQUAL "")
+                message(SEND_ERROR "unexpected: ${VERSION_VAR} is empty")
+            endif()
+            if (${VERSION_VAR} VERSION_EQUAL 0)
+                message(SEND_ERROR "unexpected: ${VERSION_VAR} is VERSION_EQUAL 0")
+            endif()
+            if (NOT ${VERSION_VAR} VERSION_GREATER 0)
+                message(SEND_ERROR "unexpected: ${VERSION_VAR} is NOT VERSION_GREATER 0")
             endif()
         else()
-            message(SEND_ERROR "${VTEST}_FOUND is set but no version number is defined")
+            message(SEND_ERROR "${MODULE_NAME}_FOUND is set but version number variable ${VERSION_VAR} is NOT DEFINED")
         endif()
-    endif(${VTEST}_FOUND)
+    endif ()
+endmacro(check_version_string)
+
+# If any of these modules reported that it was found a version number should have been
+# reported.
+
+foreach(VTEST ALSA ARMADILLO BZIP2 CUPS CURL EXPAT FREETYPE GETTEXT GIT HSPELL
+        JASPER LIBLZMA LIBXML2 LIBXSLT PERL PKG_CONFIG PostgreSQL TIFF ZLIB)
+    check_version_string(${VTEST} ${VTEST}_VERSION_STRING)
 endforeach(VTEST)
+
+foreach(VTEST BISON Boost CUDA DOXYGEN FLEX GIF GTK2 LibArchive OPENSCENEGRAPH
+        RUBY SWIG)
+    check_version_string(${VTEST} ${VTEST}_VERSION)
+endforeach(VTEST)
+
+check_version_string(PYTHONINTERP PYTHON_VERSION_STRING)
+check_version_string(SUBVERSION Subversion_VERSION_SVN)

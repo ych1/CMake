@@ -104,6 +104,9 @@ public:
 private:
   HANDLE handle_;
 };
+#elif defined(__APPLE__)
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
 #endif
 
 bool cmSystemTools::s_RunCommandHideConsole = false;
@@ -196,6 +199,20 @@ std::string cmSystemTools::EscapeQuotes(const char* str)
     result += *ch;
     }
   return result;
+}
+
+std::string cmSystemTools::TrimWhitespace(const std::string& s)
+{
+  std::string::const_iterator start = s.begin();
+  while(start != s.end() && *start == ' ')
+    ++start;
+  if (start == s.end())
+    return "";
+
+  std::string::const_iterator stop = s.end()-1;
+  while(*stop == ' ')
+    --stop;
+  return std::string(start, stop+1);
 }
 
 void cmSystemTools::Error(const char* m1, const char* m2,
@@ -1616,50 +1633,12 @@ std::vector<std::string> cmSystemTools::GetEnvironmentVariables()
 }
 
 //----------------------------------------------------------------------
-std::vector<std::string> cmSystemTools::AppendEnv(
-  std::vector<std::string>* env)
+void cmSystemTools::AppendEnv(std::vector<std::string> const& env)
 {
-  std::vector<std::string> origEnv = GetEnvironmentVariables();
-
-  if (env && env->size()>0)
+  for(std::vector<std::string>::const_iterator eit = env.begin();
+      eit != env.end(); ++eit)
     {
-    std::vector<std::string>::const_iterator eit;
-
-    for (eit = env->begin(); eit!= env->end(); ++eit)
-      {
-      PutEnv(eit->c_str());
-      }
-    }
-
-  return origEnv;
-}
-
-//----------------------------------------------------------------------
-void cmSystemTools::RestoreEnv(const std::vector<std::string>& env)
-{
-  std::vector<std::string>::const_iterator eit;
-
-  // First clear everything in the current environment:
-  //
-  std::vector<std::string> currentEnv = GetEnvironmentVariables();
-  for (eit = currentEnv.begin(); eit!= currentEnv.end(); ++eit)
-    {
-    std::string var(*eit);
-
-    std::string::size_type pos = var.find("=");
-    if (pos != std::string::npos)
-      {
-      var = var.substr(0, pos);
-      }
-
-    UnsetEnv(var.c_str());
-    }
-
-  // Then put back each entry from the original environment:
-  //
-  for (eit = env.begin(); eit!= env.end(); ++eit)
-    {
-    PutEnv(eit->c_str());
+    cmSystemTools::PutEnv(eit->c_str());
     }
 }
 
@@ -1672,7 +1651,24 @@ cmSystemTools::SaveRestoreEnvironment::SaveRestoreEnvironment()
 //----------------------------------------------------------------------
 cmSystemTools::SaveRestoreEnvironment::~SaveRestoreEnvironment()
 {
-  cmSystemTools::RestoreEnv(this->Env);
+  // First clear everything in the current environment:
+  std::vector<std::string> currentEnv = GetEnvironmentVariables();
+  for(std::vector<std::string>::const_iterator
+        eit = currentEnv.begin(); eit != currentEnv.end(); ++eit)
+    {
+    std::string var(*eit);
+
+    std::string::size_type pos = var.find("=");
+    if (pos != std::string::npos)
+      {
+      var = var.substr(0, pos);
+      }
+
+    cmSystemTools::UnsetEnv(var.c_str());
+    }
+
+  // Then put back each entry from the original environment:
+  cmSystemTools::AppendEnv(this->Env);
 }
 #endif
 

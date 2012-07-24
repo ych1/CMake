@@ -101,6 +101,9 @@ void cmMakefileLibraryTargetGenerator::WriteRuleFiles()
         this->WriteModuleLibraryRules(true);
         }
       break;
+    case cmTarget::OBJECT_LIBRARY:
+      this->WriteObjectLibraryRules();
+      break;
     default:
       // If language is not known, this is an error.
       cmSystemTools::Error("Unknown Library Type");
@@ -119,6 +122,29 @@ void cmMakefileLibraryTargetGenerator::WriteRuleFiles()
 
   // close the streams
   this->CloseFileStreams();
+}
+
+//----------------------------------------------------------------------------
+void cmMakefileLibraryTargetGenerator::WriteObjectLibraryRules()
+{
+  std::vector<std::string> commands;
+  std::vector<std::string> depends;
+
+  // Add post-build rules.
+  this->LocalGenerator->
+    AppendCustomCommands(commands, this->Target->GetPostBuildCommands(),
+                         this->Target);
+
+  // Depend on the object files.
+  this->AppendObjectDepends(depends);
+
+  // Write the rule.
+  this->LocalGenerator->WriteMakeRule(*this->BuildFileStream, 0,
+                                      this->Target->GetName(),
+                                      depends, commands, true);
+
+  // Write the main driver rule to build everything in this target.
+  this->WriteTargetDriverRule(this->Target->GetName(), false);
 }
 
 //----------------------------------------------------------------------------
@@ -688,7 +714,11 @@ void cmMakefileLibraryTargetGenerator::WriteLibraryRules
   std::string linkString = linklibs.str();
   vars.LinkLibraries = linkString.c_str();
   vars.ObjectsQuoted = buildObjs.c_str();
-  vars.TargetSOName= targetNameSO.c_str();
+  if (this->Target->HasSOName(this->ConfigName))
+    {
+    vars.SONameFlag = this->Makefile->GetSONameFlag(linkLanguage);
+    vars.TargetSOName= targetNameSO.c_str();
+    }
   vars.LinkFlags = linkFlags.c_str();
 
   // Compute the directory portion of the install_name setting.

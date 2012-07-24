@@ -34,6 +34,9 @@ cmExtraEclipseCDT4Generator
   this->SupportedGlobalGenerators.push_back("MinGW Makefiles");
 //  this->SupportedGlobalGenerators.push_back("MSYS Makefiles");
 #endif
+#ifdef CMAKE_USE_NINJA
+  this->SupportedGlobalGenerators.push_back("Ninja");
+#endif
   this->SupportedGlobalGenerators.push_back("Unix Makefiles");
 
   this->SupportsVirtualFolders = true;
@@ -286,6 +289,9 @@ void cmExtraEclipseCDT4Generator::CreateProjectFile()
 
   // set the make command
   std::string make = mf->GetRequiredDefinition("CMAKE_MAKE_PROGRAM");
+  const std::string makeArgs = mf->GetSafeDefinition(
+                                               "CMAKE_ECLIPSE_MAKE_ARGUMENTS");
+
   fout <<
     "\t\t\t\t<dictionary>\n"
     "\t\t\t\t\t<key>org.eclipse.cdt.make.core.enabledIncrementalBuild</key>\n"
@@ -293,7 +299,7 @@ void cmExtraEclipseCDT4Generator::CreateProjectFile()
     "\t\t\t\t</dictionary>\n"
     "\t\t\t\t<dictionary>\n"
     "\t\t\t\t\t<key>org.eclipse.cdt.make.core.build.command</key>\n"
-    "\t\t\t\t\t<value>" + this->GetEclipsePath(make) + "</value>\n"
+    "\t\t\t\t\t<value>" << this->GetEclipsePath(make) << "</value>\n"
     "\t\t\t\t</dictionary>\n"
     "\t\t\t\t<dictionary>\n"
     "\t\t\t\t\t<key>org.eclipse.cdt.make.core.contents</key>\n"
@@ -305,7 +311,7 @@ void cmExtraEclipseCDT4Generator::CreateProjectFile()
     "\t\t\t\t</dictionary>\n"
     "\t\t\t\t<dictionary>\n"
     "\t\t\t\t\t<key>org.eclipse.cdt.make.core.build.arguments</key>\n"
-    "\t\t\t\t\t<value></value>\n"
+    "\t\t\t\t\t<value>" << makeArgs << "</value>\n"
     "\t\t\t\t</dictionary>\n"
     "\t\t\t\t<dictionary>\n"
     "\t\t\t\t\t<key>org.eclipse.cdt.make.core.buildLocation</key>\n"
@@ -501,6 +507,7 @@ void cmExtraEclipseCDT4Generator::CreateLinksForTargets(
         case cmTarget::STATIC_LIBRARY:
         case cmTarget::SHARED_LIBRARY:
         case cmTarget::MODULE_LIBRARY:
+        case cmTarget::OBJECT_LIBRARY:
           {
           const char* prefix = (ti->second.GetType()==cmTarget::EXECUTABLE ?
                                                           "[exe] " : "[lib] ");
@@ -893,9 +900,13 @@ void cmExtraEclipseCDT4Generator::CreateCProjectFile() const
        it != this->GlobalGenerator->GetLocalGenerators().end();
        ++it)
     {
-    const std::vector<std::string>& includeDirs
-      = (*it)->GetMakefile()->GetIncludeDirectories();
-    this->AppendIncludeDirectories(fout, includeDirs, emmited);
+    cmTargets & targets = (*it)->GetMakefile()->GetTargets();
+    for (cmTargets::iterator l = targets.begin(); l != targets.end(); ++l)
+      {
+      std::vector<std::string> includeDirs;
+      (*it)->GetIncludeDirectories(includeDirs, &l->second);
+      this->AppendIncludeDirectories(fout, includeDirs, emmited);
+      }
     }
   // now also the system include directories, in case we found them in
   // CMakeSystemSpecificInformation.cmake. This makes Eclipse find the
@@ -1013,6 +1024,7 @@ void cmExtraEclipseCDT4Generator::CreateCProjectFile() const
        case cmTarget::STATIC_LIBRARY:
        case cmTarget::SHARED_LIBRARY:
        case cmTarget::MODULE_LIBRARY:
+       case cmTarget::OBJECT_LIBRARY:
          {
          const char* prefix = (ti->second.GetType()==cmTarget::EXECUTABLE ?
                                                           "[exe] " : "[lib] ");
@@ -1045,10 +1057,6 @@ void cmExtraEclipseCDT4Generator::CreateCProjectFile() const
           }
          }
          break;
-        // ignore these:
-        case cmTarget::INSTALL_FILES:
-        case cmTarget::INSTALL_PROGRAMS:
-        case cmTarget::INSTALL_DIRECTORY:
         default:
           break;
         }
@@ -1065,9 +1073,8 @@ void cmExtraEclipseCDT4Generator::CreateCProjectFile() const
       }
 
     //insert rules for compiling, preprocessing and assembling individual files
-    cmLocalUnixMakefileGenerator3* lumg=(cmLocalUnixMakefileGenerator3*)*it;
     std::vector<std::string> objectFileTargets;
-    lumg->GetIndividualFileTargets(objectFileTargets);
+    (*it)->GetIndividualFileTargets(objectFileTargets);
     for(std::vector<std::string>::const_iterator fit=objectFileTargets.begin();
         fit != objectFileTargets.end();
         ++fit)

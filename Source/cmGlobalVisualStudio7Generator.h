@@ -87,7 +87,7 @@ public:
                                         std::string& dir);
 
   ///! What is the configurations directory variable called?
-  virtual const char* GetCMakeCFGInitDirectory()  { return "$(OutDir)"; }
+  virtual const char* GetCMakeCFGIntDir() const { return "$(OutDir)"; }
 
   /** Return true if the target project file should have the option
       LinkLibraryDependencies and link to .sln dependencies. */
@@ -107,7 +107,8 @@ protected:
                            const char* name, const char* path, cmTarget &t);
   virtual void WriteProjectConfigurations(std::ostream& fout,
                                           const char* name,
-                                          bool partOfDefaultBuild);
+                                          bool partOfDefaultBuild,
+                                          const char* platformMapping = NULL);
   virtual void WriteSLNFooter(std::ostream& fout);
   virtual void WriteSLNHeader(std::ostream& fout);
   virtual std::string WriteUtilityDepend(cmTarget* target);
@@ -130,6 +131,7 @@ protected:
   virtual void WriteExternalProject(std::ostream& fout,
                                     const char* name,
                                     const char* path,
+                                    const char* typeGuid,
                                     const std::set<cmStdString>&
                                     dependencies);
 

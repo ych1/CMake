@@ -153,11 +153,11 @@ int cmCoreTryCompile::TryCompileCode(std::vector<std::string> const& argv)
     std::string ccFile = this->BinaryDirectory + "/CMakeCache.txt";
     cmSystemTools::RemoveFile(ccFile.c_str());
 
-    // we need to create a directory and CMakeList file etc...
+    // we need to create a directory and CMakeLists file etc...
     // first create the directories
     sourceDirectory = this->BinaryDirectory.c_str();
 
-    // now create a CMakeList.txt file in that directory
+    // now create a CMakeLists.txt file in that directory
     FILE *fout = fopen(outFileName.c_str(),"w");
     if (!fout)
       {
@@ -280,6 +280,10 @@ int cmCoreTryCompile::TryCompileCode(std::vector<std::string> const& argv)
       std::string flag="-DCMAKE_OSX_DEPLOYMENT_TARGET=";
       flag += this->Makefile->GetSafeDefinition("CMAKE_OSX_DEPLOYMENT_TARGET");
       cmakeFlags.push_back(flag);
+      }
+    if(this->Makefile->GetDefinition("CMAKE_POSITION_INDEPENDENT_CODE")!=0)
+      {
+      fprintf(fout, "SET(CMAKE_POSITION_INDEPENDENT_CODE \"ON\")\n");
       }
 
     /* Use a random file name to avoid rapid creation and deletion
@@ -404,6 +408,7 @@ void cmCoreTryCompile::CleanupFiles(const char* binDir)
         if(cmSystemTools::FileIsDirectory(fullPath.c_str()))
           {
           this->CleanupFiles(fullPath.c_str());
+          cmSystemTools::RemoveADirectory(fullPath.c_str());
           }
         else
           {

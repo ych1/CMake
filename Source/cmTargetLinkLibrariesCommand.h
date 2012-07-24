@@ -42,12 +42,12 @@ public:
   /**
    * The name of the command as specified in CMakeList.txt.
    */
-  virtual const char* GetName() { return "target_link_libraries";}
+  virtual const char* GetName() const { return "target_link_libraries";}
 
   /**
    * Succinct documentation.
    */
-  virtual const char* GetTerseDocumentation()
+  virtual const char* GetTerseDocumentation() const
     {
     return
       "Link a target to given libraries.";
@@ -56,7 +56,7 @@ public:
   /**
    * More documentation.
    */
-  virtual const char* GetFullDocumentation()
+  virtual const char* GetFullDocumentation() const
     {
     return
       "  target_link_libraries(<target> [item1 [item2 [...]]]\n"
@@ -64,7 +64,8 @@ public:
       "Specify libraries or flags to use when linking a given target.  "
       "The named <target> must have been created in the current directory "
       "by a command such as add_executable or add_library.  "
-      "The remaining arguments specify library names or flags."
+      "The remaining arguments specify library names or flags.  "
+      "Repeated calls for the same <target> append items in the order called."
       "\n"
       "If a library name matches that of another target in the project "
       "a dependency will automatically be added in the build system to make "

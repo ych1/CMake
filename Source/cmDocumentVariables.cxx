@@ -218,7 +218,7 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "Full path to ctest command installed with cmake.",
      "This is the full path to the CTest executable ctest "
      "which is useful from custom commands that want "
-     " to use the cmake -E option for portable system "
+     "to use the cmake -E option for portable system "
      "commands.",false,
      "Variables that Provide Information");
 
@@ -355,7 +355,9 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "If this is set to TRUE, then the rpath information "
      "is not added to compiled executables.  The default "
      "is to add rpath information if the platform supports it.  "
-     "This allows for easy running from the build tree.",false,
+     "This allows for easy running from the build tree.  To omit RPATH "
+     "in the install step, but not the build step, use "
+     "CMAKE_SKIP_INSTALL_RPATH instead.",false,
      "Variables that Provide Information");
   cm->DefineProperty
     ("CMAKE_SOURCE_DIR", cmProperty::VARIABLE,
@@ -517,6 +519,16 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "In this mode it e.g. also checks whether a header file is intended to "
      "be processed by moc when a \"foo.moc\" file has been included.\n"
      "Relaxed mode has to be enabled for KDE4 compatibility.",
+     false,
+     "Variables That Change Behavior");
+
+    cm->DefineProperty
+    ("CMAKE_INSTALL_DEFAULT_COMPONENT_NAME",  cmProperty::VARIABLE,
+     "Default component used in install() commands.",
+     "If an install() command is used without the COMPONENT argument, "
+     "these files will be grouped into a default component. The name of this "
+     "default install component will be taken from this variable.  "
+     "It defaults to \"Unspecified\". ",
      false,
      "Variables That Change Behavior");
 
@@ -746,6 +758,26 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "Variables That Change Behavior");
 
   cm->DefineProperty
+    ("CMAKE_FIND_PACKAGE_WARN_NO_MODULE", cmProperty::VARIABLE,
+     "Tell find_package to warn if called without an explicit mode.",
+     "If find_package is called without an explicit mode option "
+     "(MODULE, CONFIG or NO_MODULE) and no Find<pkg>.cmake module is "
+     "in CMAKE_MODULE_PATH then CMake implicitly assumes that the "
+     "caller intends to search for a package configuration file.  "
+     "If no package configuration file is found then the wording "
+     "of the failure message must account for both the case that the "
+     "package is really missing and the case that the project has a "
+     "bug and failed to provide the intended Find module.  "
+     "If instead the caller specifies an explicit mode option then "
+     "the failure message can be more specific."
+     "\n"
+     "Set CMAKE_FIND_PACKAGE_WARN_NO_MODULE to TRUE to tell find_package "
+     "to warn when it implicitly assumes Config mode.  "
+     "This helps developers enforce use of an explicit mode in all calls "
+     "to find_package within a project.", false,
+     "Variables That Change Behavior");
+
+  cm->DefineProperty
     ("CMAKE_USER_MAKE_RULES_OVERRIDE", cmProperty::VARIABLE,
      "Specify a CMake file that overrides platform information.",
      "CMake loads the specified file while enabling support for each "
@@ -811,6 +843,36 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "Default is ON.",false,
      "Variables That Change Behavior");
 
+  cm->DefineProperty
+    ("CMAKE_ABSOLUTE_DESTINATION_FILES", cmProperty::VARIABLE,
+      "List of files which have been installed using "
+      " an ABSOLUTE DESTINATION path.",
+      "This variable is defined by CMake-generated cmake_install.cmake "
+      "scripts."
+      " It can be used (read-only) by program or script that source those"
+      " install scripts. This is used by some CPack generators (e.g. RPM).",
+      false,
+      "Variables That Change Behavior");
+
+  cm->DefineProperty
+    ("CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION", cmProperty::VARIABLE,
+      "Ask cmake_install.cmake script to warn each time a file with "
+      "absolute INSTALL DESTINATION is encountered.",
+      "This variable is used by CMake-generated cmake_install.cmake"
+      " scripts. If ones set this variable to ON while running the"
+      " script, it may get warning messages from the script.", false,
+      "Variables That Change Behavior");
+
+  cm->DefineProperty
+    ("CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION", cmProperty::VARIABLE,
+      "Ask cmake_install.cmake script to error out as soon as "
+      "a file with absolute INSTALL DESTINATION is encountered.",
+      "The fatal error is emitted before the installation of "
+      "the offending file takes place."
+      " This variable is used by CMake-generated cmake_install.cmake"
+      " scripts. If ones set this variable to ON while running the"
+      " script, it may get fatal error messages from the script.",false,
+      "Variables That Change Behavior");
 
   // Variables defined by CMake that describe the system
 
@@ -895,7 +957,7 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
 
   cm->DefineProperty
     ("BORLAND", cmProperty::VARIABLE,
-     "True of the borland compiler is being used.",
+     "True if the borland compiler is being used.",
      "This is set to true if the Borland compiler is being used.",false,
      "Variables That Describe the System");
 
@@ -1181,6 +1243,20 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "Variables that Control the Build");
 
   cm->DefineProperty
+    ("CMAKE_SKIP_INSTALL_RPATH", cmProperty::VARIABLE,
+     "Do not include RPATHs in the install tree.",
+     "Normally CMake uses the build tree for the RPATH when building "
+     "executables etc on systems that use RPATH. When the software "
+     "is installed the executables etc are relinked by CMake to have "
+     "the install RPATH. If this variable is set to true then the software "
+     "is always installed without RPATH, even if RPATH is enabled when "
+     "building.  This can be useful for example to allow running tests from "
+     "the build directory with RPATH enabled before the installation step.  "
+     "To omit RPATH in both the build and install steps, use "
+     "CMAKE_SKIP_RPATH instead.",false,
+     "Variables that Control the Build");
+
+  cm->DefineProperty
     ("CMAKE_EXE_LINKER_FLAGS", cmProperty::VARIABLE,
      "Linker flags used to create executables.",
      "Flags used by the linker when creating an executable.",false,
@@ -1255,6 +1331,30 @@ void cmDocumentVariables::DefineVariables(cmake* cm)
      "Default value for LINK_INTERFACE_LIBRARIES of targets.",
      "This variable is used to initialize the "
      "LINK_INTERFACE_LIBRARIES property on all the targets. "
+     "See that target property for additional information.",
+     false,
+     "Variables that Control the Build");
+  cm->DefineProperty
+    ("CMAKE_WIN32_EXECUTABLE", cmProperty::VARIABLE,
+     "Default value for WIN32_EXECUTABLE of targets.",
+     "This variable is used to initialize the "
+     "WIN32_EXECUTABLE property on all the targets. "
+     "See that target property for additional information.",
+     false,
+     "Variables that Control the Build");
+  cm->DefineProperty
+    ("CMAKE_MACOSX_BUNDLE", cmProperty::VARIABLE,
+     "Default value for MACOSX_BUNDLE of targets.",
+     "This variable is used to initialize the "
+     "MACOSX_BUNDLE property on all the targets. "
+     "See that target property for additional information.",
+     false,
+     "Variables that Control the Build");
+  cm->DefineProperty
+    ("CMAKE_POSITION_INDEPENDENT_FLAGS", cmProperty::VARIABLE,
+     "Default value for POSITION_INDEPENDENT_CODE of targets.",
+     "This variable is used to initialize the "
+     "POSITION_INDEPENDENT_CODE property on all the targets. "
      "See that target property for additional information.",
      false,
      "Variables that Control the Build");

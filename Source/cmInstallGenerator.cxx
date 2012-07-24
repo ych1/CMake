@@ -12,7 +12,6 @@
 #include "cmInstallGenerator.h"
 
 #include "cmSystemTools.h"
-#include "cmTarget.h"
 
 //----------------------------------------------------------------------------
 cmInstallGenerator
@@ -35,7 +34,7 @@ cmInstallGenerator
 void cmInstallGenerator
 ::AddInstallRule(
                  std::ostream& os,
-                 int type,
+                 cmInstallType type,
                  std::vector<std::string> const& files,
                  bool optional /* = false */,
                  const char* permissions_file /* = 0 */,
@@ -49,20 +48,19 @@ void cmInstallGenerator
   std::string stype;
   switch(type)
     {
-    case cmTarget::INSTALL_DIRECTORY:stype = "DIRECTORY"; break;
-    case cmTarget::INSTALL_PROGRAMS: stype = "PROGRAM"; break;
-    case cmTarget::EXECUTABLE:       stype = "EXECUTABLE"; break;
-    case cmTarget::STATIC_LIBRARY:   stype = "STATIC_LIBRARY"; break;
-    case cmTarget::SHARED_LIBRARY:   stype = "SHARED_LIBRARY"; break;
-    case cmTarget::MODULE_LIBRARY:   stype = "MODULE"; break;
-    case cmTarget::INSTALL_FILES:
-    default:                         stype = "FILE"; break;
+    case cmInstallType_DIRECTORY:      stype = "DIRECTORY"; break;
+    case cmInstallType_PROGRAMS:       stype = "PROGRAM"; break;
+    case cmInstallType_EXECUTABLE:     stype = "EXECUTABLE"; break;
+    case cmInstallType_STATIC_LIBRARY: stype = "STATIC_LIBRARY"; break;
+    case cmInstallType_SHARED_LIBRARY: stype = "SHARED_LIBRARY"; break;
+    case cmInstallType_MODULE_LIBRARY: stype = "MODULE"; break;
+    case cmInstallType_FILES:          stype = "FILE"; break;
     }
   os << indent;
   std::string dest = this->GetInstallDestination();
   if (cmSystemTools::FileIsFullPath(dest.c_str()))
      {
-     os << "list(APPEND CPACK_ABSOLUTE_DESTINATION_FILES\n";
+     os << "list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES\n";
      os << indent << " \"";
      for(std::vector<std::string>::const_iterator fi = files.begin();
                fi != files.end(); ++fi)
@@ -82,6 +80,16 @@ void cmInstallGenerator
                  }
              }
      os << "\")\n";
+     os << indent << "IF (CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)\n";
+     os << indent << indent << "message(WARNING \"ABSOLUTE path INSTALL "
+        << "DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}\")\n";
+     os << indent << "ENDIF (CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)\n";
+
+     os << indent << "IF (CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)\n";
+     os << indent << indent << "message(FATAL_ERROR \"ABSOLUTE path INSTALL "
+        << "DESTINATION forbidden (by caller): "
+        << "${CMAKE_ABSOLUTE_DESTINATION_FILES}\")\n";
+     os << indent << "ENDIF (CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)\n";
      }
   os << "FILE(INSTALL DESTINATION \"" << dest << "\" TYPE " << stype.c_str();
   if(optional)

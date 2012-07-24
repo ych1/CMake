@@ -63,6 +63,16 @@ public:
       cmSystemTools::OUTPUT_MERGE : cmSystemTools::OUTPUT_NONE; }
 
   /**
+   * Returns true if the generator may work on this system.
+   * Rational:
+   * Some CPack generator may run on some host and may not on others
+   * (with the same system) because some tools are missing. If the tool
+   * is missing then CPack won't activate (in the CPackGeneratorFactory)
+   * this particular generator.
+   */
+  static bool CanGenerate() { return true; }
+
+  /**
    * Do the actual whole package processing.
    * Subclass may redefine it but its usually enough
    * to redefine @ref PackageFiles, because in fact
@@ -189,7 +199,53 @@ protected:
   virtual int InstallProjectViaInstallCMakeProjects(
     bool setDestDir, const char* tempInstallDirectory);
 
+  /**
+   * The various level of support of
+   * CPACK_SET_DESTDIR used by the generator.
+   */
+  enum CPackSetDestdirSupport {
+    /* the generator works with or without it */
+    SETDESTDIR_SUPPORTED,
+    /* the generator works best if automatically handled */
+    SETDESTDIR_INTERNALLY_SUPPORTED,
+    /* no official support, use at your own risk */
+    SETDESTDIR_SHOULD_NOT_BE_USED,
+    /* officially NOT supported */
+    SETDESTDIR_UNSUPPORTED
+  };
+
+  /**
+   * Does the CPack generator support CPACK_SET_DESTDIR?
+   * The default legacy value is 'SETDESTDIR_SUPPORTED' generator
+   * have to override it in order change this.
+   * @return CPackSetDestdirSupport
+   */
+  virtual enum CPackSetDestdirSupport SupportsSetDestdir() const;
+
+  /**
+   * Does the CPack generator support absolute path
+   * in INSTALL DESTINATION?
+   * The default legacy value is 'true' generator
+   * have to override it in order change this.
+   * @return true if supported false otherwise
+   */
+  virtual bool SupportsAbsoluteDestination() const;
+
+  /**
+   * Does the CPack generator support component installation?.
+   * Some Generators requires the user to set
+   * CPACK_<GENNAME>_COMPONENT_INSTALL in order to make this
+   * method return true.
+   * @return true if supported, false otherwise
+   */
   virtual bool SupportsComponentInstallation() const;
+  /**
+   * Does the currently running generator want a component installation.
+   * The generator may support component installation but he may
+   * be requiring monolithic install using CPACK_MONOLITHIC_INSTALL.
+   * @return true if component installation is supported and wanted.
+   */
+  virtual bool WantsComponentInstallation() const;
   virtual cmCPackInstallationType* GetInstallationType(const char *projectName,
                                                        const char* name);
   virtual cmCPackComponent* GetComponent(const char *projectName,

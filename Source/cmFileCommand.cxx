@@ -12,6 +12,7 @@
 #include "cmFileCommand.h"
 #include "cmake.h"
 #include "cmHexFileConverter.h"
+#include "cmInstallType.h"
 #include "cmFileTimeComparison.h"
 #include "cmCryptoHash.h"
 
@@ -299,7 +300,7 @@ bool cmFileCommand::HandleReadCommand(std::vector<std::string> const& args)
     offset = atoi(offsetArg.GetCString());
     }
 
-  file.seekg(offset);
+  file.seekg(offset, std::ios::beg); // explicit ios::beg for IBM VisualAge 6
 
   std::string output;
 
@@ -1002,7 +1003,9 @@ protected:
     // Match rules are case-insensitive on some platforms.
 #if defined(_WIN32) || defined(__APPLE__) || defined(__CYGWIN__)
     std::string lower = cmSystemTools::LowerCase(file);
-    file = lower.c_str();
+    const char* file_to_match = lower.c_str();
+#else
+    const char* file_to_match = file;
 #endif
 
     // Collect properties from all matching rules.
@@ -1011,7 +1014,7 @@ protected:
     for(std::vector<MatchRule>::iterator mr = this->MatchRules.begin();
         mr != this->MatchRules.end(); ++mr)
       {
-      if(mr->Regex.find(file))
+      if(mr->Regex.find(file_to_match))
         {
         matched = true;
         result.Exclude |= mr->Properties.Exclude;
@@ -1690,7 +1693,7 @@ struct cmFileInstaller: public cmFileCopier
 {
   cmFileInstaller(cmFileCommand* command):
     cmFileCopier(command, "INSTALL"),
-    InstallType(cmTarget::INSTALL_FILES),
+    InstallType(cmInstallType_FILES),
     Optional(false),
     DestDirLength(0)
     {
@@ -1711,7 +1714,7 @@ struct cmFileInstaller: public cmFileCopier
     }
 
 protected:
-  cmTarget::TargetType InstallType;
+  cmInstallType InstallType;
   bool Optional;
   int DestDirLength;
   std::string Rename;
@@ -1745,7 +1748,7 @@ protected:
   virtual bool Install(const char* fromFile, const char* toFile)
     {
     // Support installing from empty source to make a directory.
-    if(this->InstallType == cmTarget::INSTALL_DIRECTORY && !*fromFile)
+    if(this->InstallType == cmInstallType_DIRECTORY && !*fromFile)
       {
       return this->InstallDirectory(fromFile, toFile, MatchProperties());
       }
@@ -1767,14 +1770,14 @@ protected:
     // Add execute permissions based on the target type.
     switch(this->InstallType)
       {
-      case cmTarget::SHARED_LIBRARY:
-      case cmTarget::MODULE_LIBRARY:
+      case cmInstallType_SHARED_LIBRARY:
+      case cmInstallType_MODULE_LIBRARY:
         if(this->Makefile->IsOn("CMAKE_INSTALL_SO_NO_EXE"))
           {
           break;
           }
-      case cmTarget::EXECUTABLE:
-      case cmTarget::INSTALL_PROGRAMS:
+      case cmInstallType_EXECUTABLE:
+      case cmInstallType_PROGRAMS:
         this->FilePermissions |= mode_owner_execute;
         this->FilePermissions |= mode_group_execute;
         this->FilePermissions |= mode_world_execute;
@@ -1796,8 +1799,8 @@ bool cmFileInstaller::Parse(std::vector<std::string> const& args)
 
   if(!this->Rename.empty())
     {
-    if(this->InstallType != cmTarget::INSTALL_FILES &&
-       this->InstallType != cmTarget::INSTALL_PROGRAMS)
+    if(this->InstallType != cmInstallType_FILES &&
+       this->InstallType != cmInstallType_PROGRAMS)
       {
       this->FileCommand->SetError("INSTALL option RENAME may be used "
                                   "only with FILES or PROGRAMS.");
@@ -1936,31 +1939,31 @@ bool cmFileInstaller
 {
   if ( stype == "EXECUTABLE" )
     {
-    this->InstallType = cmTarget::EXECUTABLE;
+    this->InstallType = cmInstallType_EXECUTABLE;
     }
   else if ( stype == "FILE" )
     {
-    this->InstallType = cmTarget::INSTALL_FILES;
+    this->InstallType = cmInstallType_FILES;
     }
   else if ( stype == "PROGRAM" )
     {
-    this->InstallType = cmTarget::INSTALL_PROGRAMS;
+    this->InstallType = cmInstallType_PROGRAMS;
     }
   else if ( stype == "STATIC_LIBRARY" )
     {
-    this->InstallType = cmTarget::STATIC_LIBRARY;
+    this->InstallType = cmInstallType_STATIC_LIBRARY;
     }
   else if ( stype == "SHARED_LIBRARY" )
     {
-    this->InstallType = cmTarget::SHARED_LIBRARY;
+    this->InstallType = cmInstallType_SHARED_LIBRARY;
     }
   else if ( stype == "MODULE" )
     {
-    this->InstallType = cmTarget::MODULE_LIBRARY;
+    this->InstallType = cmInstallType_MODULE_LIBRARY;
     }
   else if ( stype == "DIRECTORY" )
     {
-    this->InstallType = cmTarget::INSTALL_DIRECTORY;
+    this->InstallType = cmInstallType_DIRECTORY;
     }
   else
     {

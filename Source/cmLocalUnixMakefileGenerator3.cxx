@@ -36,6 +36,30 @@
 #include <queue>
 
 //----------------------------------------------------------------------------
+// Escape special characters in Makefile dependency lines
+class cmMakeSafe
+{
+public:
+  cmMakeSafe(const char* s): Data(s) {}
+  cmMakeSafe(std::string const& s): Data(s.c_str()) {}
+private:
+  const char* Data;
+  friend std::ostream& operator<<(std::ostream& os,
+                                  cmMakeSafe const& self)
+    {
+    for(const char* c = self.Data; *c; ++c)
+      {
+      switch (*c)
+        {
+        case '=': os << "$(EQUALS)"; break;
+        default: os << *c; break;
+        }
+      }
+    return os;
+    }
+};
+
+//----------------------------------------------------------------------------
 // Helper function used below.
 static std::string cmSplitExtension(std::string const& in, std::string& base)
 {
@@ -142,6 +166,20 @@ void cmLocalUnixMakefileGenerator3::Generate()
 
   // Write the cmake file with information for this directory.
   this->WriteDirectoryInformationFile();
+}
+
+//----------------------------------------------------------------------------
+void cmLocalUnixMakefileGenerator3::AddLocalObjectFile(
+  cmTarget* target, cmSourceFile* sf, std::string objNoTargetDir,
+  bool hasSourceExtension)
+{
+  if(cmSystemTools::FileIsFullPath(objNoTargetDir.c_str()))
+    {
+    objNoTargetDir = cmSystemTools::GetFilenameName(objNoTargetDir);
+    }
+  LocalObjectInfo& info = this->LocalObjectFiles[objNoTargetDir];
+  info.HasSourceExtension = hasSourceExtension;
+  info.push_back(LocalObjectEntry(target, sf->GetLanguage()));
 }
 
 //----------------------------------------------------------------------------
@@ -344,6 +382,7 @@ void cmLocalUnixMakefileGenerator3
        (t->second.GetType() == cmTarget::STATIC_LIBRARY) ||
        (t->second.GetType() == cmTarget::SHARED_LIBRARY) ||
        (t->second.GetType() == cmTarget::MODULE_LIBRARY) ||
+       (t->second.GetType() == cmTarget::OBJECT_LIBRARY) ||
        (t->second.GetType() == cmTarget::UTILITY))
       {
       emitted.insert(t->second.GetName());
@@ -452,28 +491,6 @@ void cmLocalUnixMakefileGenerator3::WriteDirectoryInformationFile()
       << "\n";
     }
 
-  // Store the include search path for this directory.
-  infoFileStream
-    << "# The C and CXX include file search paths:\n";
-  infoFileStream
-    << "SET(CMAKE_C_INCLUDE_PATH\n";
-  std::vector<std::string> includeDirs;
-  this->GetIncludeDirectories(includeDirs);
-  for(std::vector<std::string>::iterator i = includeDirs.begin();
-      i != includeDirs.end(); ++i)
-    {
-    infoFileStream
-      << "  \"" << this->Convert(i->c_str(),HOME_OUTPUT).c_str() << "\"\n";
-    }
-  infoFileStream
-    << "  )\n";
-  infoFileStream
-    << "SET(CMAKE_CXX_INCLUDE_PATH ${CMAKE_C_INCLUDE_PATH})\n";
-  infoFileStream
-    << "SET(CMAKE_Fortran_INCLUDE_PATH ${CMAKE_C_INCLUDE_PATH})\n";
-  infoFileStream
-    << "SET(CMAKE_ASM_INCLUDE_PATH ${CMAKE_C_INCLUDE_PATH})\n";
-
   // Store the include regular expressions for this directory.
   infoFileStream
     << "\n"
@@ -562,28 +579,13 @@ cmLocalUnixMakefileGenerator3
     space = " ";
     }
 
-  // Warn about paths not supported by Make tools.
-  std::string::size_type pos = tgt.find_first_of("=");
-  if(pos != std::string::npos)
-    {
-    cmOStringStream m;
-    m <<
-      "Make rule for\n"
-      "  " << tgt << "\n"
-      "has '=' on left hand side.  "
-      "The make tool may not support this.";
-    cmListFileBacktrace bt;
-    this->GlobalGenerator->GetCMakeInstance()
-      ->IssueMessage(cmake::WARNING, m.str(), bt);
-    }
-
   // Mark the rule as symbolic if requested.
   if(symbolic)
     {
     if(const char* sym =
        this->Makefile->GetDefinition("CMAKE_MAKE_SYMBOLIC_RULE"))
       {
-      os << tgt.c_str() << space << ": " << sym << "\n";
+      os << cmMakeSafe(tgt) << space << ": " << sym << "\n";
       }
     }
 
@@ -591,7 +593,7 @@ cmLocalUnixMakefileGenerator3
   if(depends.empty())
     {
     // No dependencies.  The commands will always run.
-    os << tgt.c_str() << space << ":\n";
+    os << cmMakeSafe(tgt) << space << ":\n";
     }
   else
     {
@@ -602,7 +604,7 @@ cmLocalUnixMakefileGenerator3
       {
       replace = *dep;
       replace = this->Convert(replace.c_str(),HOME_OUTPUT,MAKEFILE);
-      os << tgt.c_str() << space << ": " << replace.c_str() << "\n";
+      os << cmMakeSafe(tgt) << space << ": " << cmMakeSafe(replace) << "\n";
       }
     }
 
@@ -615,7 +617,7 @@ cmLocalUnixMakefileGenerator3
     }
   if(symbolic && !this->WatcomWMake)
     {
-    os << ".PHONY : " << tgt.c_str() << "\n";
+    os << ".PHONY : " << cmMakeSafe(tgt) << "\n";
     }
   os << "\n";
   // Add the output to the local help if requested.
@@ -693,6 +695,10 @@ cmLocalUnixMakefileGenerator3
     << "RM = "
     << this->ConvertShellCommand(cmakecommand, FULL)
     << " -E remove -f\n"
+    << "\n";
+  makefileStream
+    << "# Escaping for special characters.\n"
+    << "EQUALS = =\n"
     << "\n";
 
   if(const char* edit_cmd =
@@ -2017,45 +2023,6 @@ void cmLocalUnixMakefileGenerator3
 }
 
 //----------------------------------------------------------------------------
-std::string
-cmLocalUnixMakefileGenerator3
-::GetObjectFileName(cmTarget& target,
-                    const cmSourceFile& source,
-                    std::string* nameWithoutTargetDir,
-                    bool* hasSourceExtension)
-{
-  // Make sure we never hit this old case.
-  if(source.GetProperty("MACOSX_PACKAGE_LOCATION"))
-    {
-    std::string msg = "MACOSX_PACKAGE_LOCATION set on source file: ";
-    msg += source.GetFullPath();
-    this->GetMakefile()->IssueMessage(cmake::INTERNAL_ERROR,
-                                      msg.c_str());
-    }
-
-  // Start with the target directory.
-  std::string obj = this->GetTargetDirectory(target);
-  obj += "/";
-
-  // Get the object file name without the target directory.
-  std::string dir_max;
-  dir_max += this->Makefile->GetCurrentOutputDirectory();
-  dir_max += "/";
-  dir_max += obj;
-  std::string objectName =
-    this->GetObjectFileNameWithoutTarget(source, dir_max,
-                                         hasSourceExtension);
-  if(nameWithoutTargetDir)
-    {
-    *nameWithoutTargetDir = objectName;
-    }
-
-  // Append the object name to the target directory.
-  obj += objectName;
-  return obj;
-}
-
-//----------------------------------------------------------------------------
 void cmLocalUnixMakefileGenerator3::WriteDisclaimer(std::ostream& os)
 {
   os
@@ -2288,15 +2255,4 @@ void cmLocalUnixMakefileGenerator3
       *i = cmd;
       }
     }
-}
-
-
-void cmLocalUnixMakefileGenerator3
-::GetTargetObjectFileDirectories(cmTarget* target,
-                                 std::vector<std::string>& dirs)
-{
-  std::string dir = this->Makefile->GetCurrentOutputDirectory();
-  dir += "/";
-  dir += this->GetTargetDirectory(*target);
-  dirs.push_back(dir);
 }

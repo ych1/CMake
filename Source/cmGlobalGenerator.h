@@ -19,6 +19,7 @@
 #include "cmTargetDepend.h" // For cmTargetDependSet
 #include "cmSystemTools.h" // for cmSystemTools::OutputOption
 class cmake;
+class cmGeneratorTarget;
 class cmMakefile;
 class cmLocalGenerator;
 class cmExternalMakefileProjectGenerator;
@@ -183,7 +184,7 @@ public:
   const char* GetLanguageOutputExtension(cmSourceFile const&);
 
   ///! What is the configurations directory variable called?
-  virtual const char* GetCMakeCFGInitDirectory()  { return "."; }
+  virtual const char* GetCMakeCFGIntDir() const { return "."; }
 
   /** Get whether the generator should use a script for link commands.  */
   bool GetUseLinkScript() const { return this->UseLinkScript; }
@@ -251,6 +252,9 @@ public:
   // via a target_link_libraries or add_dependencies
   TargetDependSet const& GetTargetDirectDepends(cmTarget & target);
 
+  /** Get per-target generator information.  */
+  cmGeneratorTarget* GetGeneratorTarget(cmTarget*) const;
+
   const std::map<cmStdString, std::vector<cmLocalGenerator*> >& GetProjectMap()
                                                const {return this->ProjectMap;}
 
@@ -272,6 +276,13 @@ public:
   /** Return true if the generated build tree may contain multiple builds.
       i.e. "Can I build Debug and Release in the same tree?" */
   virtual bool IsMultiConfig() { return false; }
+
+  std::string GetSharedLibFlagsForLanguage(std::string const& lang);
+
+  /** Generate an <output>.rule file path for a given command output.  */
+  virtual std::string GenerateRuleFile(std::string const& output) const;
+
+  static std::string EscapeJSON(const std::string& s);
 
 protected:
   typedef std::vector<cmLocalGenerator*> GeneratorVector;
@@ -350,6 +361,7 @@ private:
   std::map<cmStdString, cmStdString> LanguageToOutputExtension;
   std::map<cmStdString, cmStdString> ExtensionToLanguage;
   std::map<cmStdString, int> LanguageToLinkerPreference;
+  std::map<cmStdString, cmStdString> LanguageToOriginalSharedLibFlags;
 
   // Record hashes for rules and outputs.
   struct RuleHash { char Data[32]; };
@@ -369,6 +381,13 @@ private:
   // Store computed inter-target dependencies.
   typedef std::map<cmTarget *, TargetDependSet> TargetDependMap;
   TargetDependMap TargetDependencies;
+
+  // Per-target generator information.
+  typedef std::map<cmTarget*, cmGeneratorTarget*> GeneratorTargetsType;
+  GeneratorTargetsType GeneratorTargets;
+  void CreateGeneratorTargets();
+  void ClearGeneratorTargets();
+  virtual void ComputeTargetObjects(cmGeneratorTarget* gt) const;
 
   // Cache directory content and target files to be built.
   struct DirectoryContent: public std::set<cmStdString>

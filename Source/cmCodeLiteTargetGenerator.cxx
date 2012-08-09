@@ -119,7 +119,7 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteSettings()
 	compiler->SetAttribute("Options","");
 	compiler->SetAttribute("C_Options","");
 	globalSettings->LinkEndChild(compiler);
-
+	
 	TiXmlElement* includePath = new TiXmlElement("IncludePath");
 	includePath->SetAttribute("Value",".");
 	compiler->LinkEndChild(includePath);
@@ -203,7 +203,8 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteConfiguration(std::string const& n
 		OutputDir = dir != NULL ? dir : "";
 
 	}
-
+	if(OutputDir.empty() )
+		OutputDir = Makefile->GetStartOutputDirectory();
 	OutputFile =  OutputDir +"/"  + Target->GetFullName();
 	std::string IntermediateDirectory =  Makefile->GetStartOutputDirectory();
 	TiXmlElement* General = new TiXmlElement("General");
@@ -340,9 +341,10 @@ TiXmlElement* cmCodeLiteTargetGenerator::WriteCompiler(bool isEnable)
 	Compiler->SetAttribute("PCHInCommandLine", PCHInCommandLine.c_str() );
 	Compiler->SetAttribute("UseDifferentPCHFlags", UseDifferentPCHFlags.c_str() );
 	Compiler->SetAttribute("PCHFlags","" );
-
-	for (std::vector<std::string>::const_iterator it = Makefile->GetIncludeDirectories().begin() 
-		; it !=Makefile->GetIncludeDirectories().end();it++)
+    std::vector<std::string> includes;
+    Makefile->GetLocalGenerator()->GetIncludeDirectories(includes, Target);
+	for (std::vector<std::string>::const_iterator it = includes.begin() 
+		; it !=includes.end();it++)
 	{
 		TiXmlElement* IncludePath = new TiXmlElement("IncludePath");
 		IncludePath->SetAttribute("Value",*it );

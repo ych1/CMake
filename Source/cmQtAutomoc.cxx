@@ -26,7 +26,7 @@
 #endif
 
 #include "cmQtAutomoc.h"
-
+#include <unistd.h>
 
 static bool containsQ_OBJECT(const std::string& text)
 {

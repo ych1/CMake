@@ -93,6 +93,7 @@
 
 #if !defined(CMAKE_BOOT_MINGW)
 # include "cmExtraCodeBlocksGenerator.h"
+#include "cmGlobalCodeLiteGenerator.h"
 #endif
 
 #ifdef CMAKE_USE_KDEVELOP
@@ -103,9 +104,6 @@
 # include "cmExtraEclipseCDT4Generator.h"
 #endif
 
-#ifdef CMAKE_USE_CODELITE
-#include "cmGlobalCodeLiteGenerator.h"
-#endif
 
 #include <stdlib.h> // required for atoi
 
@@ -1846,7 +1844,9 @@ void cmake::AddDefaultExtraGenerators()
 
   this->AddExtraGenerator(cmExtraCodeBlocksGenerator::GetActualName(),
                           &cmExtraCodeBlocksGenerator::New);
-
+    
+ this->Generators[cmClobalCodeLiteGenerator::GetActualName()] =
+    &cmClobalCodeLiteGenerator::New;
 #ifdef CMAKE_USE_ECLIPSE
   this->AddExtraGenerator(cmExtraEclipseCDT4Generator::GetActualName(),
                           &cmExtraEclipseCDT4Generator::New);
@@ -2600,6 +2600,7 @@ void cmake::AddDefaultGenerators()
     &cmGlobalMSYSMakefileGenerator::New;
   this->Generators[cmGlobalMinGWMakefileGenerator::GetActualName()] =
     &cmGlobalMinGWMakefileGenerator::New;
+
 #endif
   this->Generators[cmGlobalUnixMakefileGenerator3::GetActualName()] =
     &cmGlobalUnixMakefileGenerator3::New;
@@ -2610,8 +2611,7 @@ void cmake::AddDefaultGenerators()
     &cmGlobalXCodeGenerator::New;
 #endif
 #ifdef CMAKE_USE_CODELITE
-  this->Generators[cmClobalCodeLiteGenerator::GetActualName()] =
-	  &cmClobalCodeLiteGenerator::New;
+
 #endif
 }
 
